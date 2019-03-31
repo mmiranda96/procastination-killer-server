@@ -51,6 +51,25 @@ func (c *Task) CreateTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateTask updates an existing task for a user
+func (c *Task) UpdateTask(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value(userCtxKey).(*models.User)
+
+	body, _ := ioutil.ReadAll(r.Body)
+	task := &models.Task{}
+	if err := json.Unmarshal(body, task); err != nil {
+		log.Println(err)
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
+	}
+
+	if err := c.updateTaskInDB(user.Email, task); err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (c *Task) getTasksFromDB(email string) ([]*models.Task, error) {
 	const query = `
 	SELECT tasks.id, title, description, due
@@ -74,14 +93,13 @@ func (c *Task) getTasksFromDB(email string) ([]*models.Task, error) {
 		}
 
 		const subtasksQuery = `
-		SELECT description
+		SELECT subtasks.description
 		FROM subtasks
-		JOIN users
-		ON subtasks.user_id = users.id
-		WHERE users.email = $1
-		AND subtasks.task_id = $2;
+		JOIN tasks
+		ON subtasks.task_id = tasks.id
+		WHERE subtasks.task_id = $1;
 		`
-		subtasksRows, err := c.DB.Query(subtasksQuery, email, task.ID)
+		subtasksRows, err := c.DB.Query(subtasksQuery, task.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -124,10 +142,44 @@ func (c *Task) createTaskInDB(email string, task *models.Task) error {
 
 	for _, subtask := range task.Subtasks {
 		const querySubtasks = `
-		INSERT INTO subtasks(user_id, task_id, description)
-		VALUES ($1, $2, $3)
+		INSERT INTO subtasks(task_id, description)
+		VALUES ($1, $2)
 		`
-		if _, err := c.DB.Exec(querySubtasks, userID, int(taskID), subtask); err != nil {
+		if _, err := c.DB.Exec(querySubtasks, taskID, subtask); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Task) updateTaskInDB(email string, task *models.Task) error {
+	const query = `
+	UPDATE tasks
+	SET title = $1,
+	description = $2,
+	due = $3
+	WHERE id = $4;
+	`
+	due := time.Unix(task.Due, 0)
+	if _, err := c.DB.Exec(query, task.Title, task.Description, due, task.ID); err != nil {
+		return err
+	}
+
+	const querySubtasksDelete = `
+	DELETE FROM subtasks
+	WHERE task_id = $1
+	`
+	if _, err := c.DB.Exec(querySubtasksDelete, task.ID); err != nil {
+		return err
+	}
+
+	for _, subtask := range task.Subtasks {
+		const querySubtasks = `
+		INSERT INTO subtasks(task_id, description)
+		VALUES ($1, $2)
+		`
+		if _, err := c.DB.Exec(querySubtasks, task.ID, subtask); err != nil {
 			return err
 		}
 	}

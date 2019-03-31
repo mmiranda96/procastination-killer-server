@@ -5,7 +5,7 @@
 -- Dumped from database version 10.4 (Debian 10.4-1.pgdg90+1)
 -- Dumped by pg_dump version 10.4
 
--- Started on 2019-03-17 18:56:04 UTC
+-- Started on 2019-03-31 23:31:40 UTC
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -26,7 +26,7 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- TOC entry 2882 (class 0 OID 0)
+-- TOC entry 2879 (class 0 OID 0)
 -- Dependencies: 1
 -- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
 --
@@ -34,25 +34,22 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 
-SET default_tablespace = '';
-
 SET default_with_oids = false;
 
 --
--- TOC entry 202 (class 1259 OID 24779)
+-- TOC entry 201 (class 1259 OID 24822)
 -- Name: subtasks; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.subtasks (
     id integer NOT NULL,
-    user_id integer NOT NULL,
     task_id integer NOT NULL,
     description character varying(128) NOT NULL
 );
 
 
 --
--- TOC entry 201 (class 1259 OID 24777)
+-- TOC entry 200 (class 1259 OID 24820)
 -- Name: subtasks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -66,8 +63,8 @@ CREATE SEQUENCE public.subtasks_id_seq
 
 
 --
--- TOC entry 2883 (class 0 OID 0)
--- Dependencies: 201
+-- TOC entry 2880 (class 0 OID 0)
+-- Dependencies: 200
 -- Name: subtasks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -75,7 +72,7 @@ ALTER SEQUENCE public.subtasks_id_seq OWNED BY public.subtasks.id;
 
 
 --
--- TOC entry 200 (class 1259 OID 24646)
+-- TOC entry 199 (class 1259 OID 24792)
 -- Name: tasks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -89,7 +86,7 @@ CREATE TABLE public.tasks (
 
 
 --
--- TOC entry 198 (class 1259 OID 24642)
+-- TOC entry 198 (class 1259 OID 24790)
 -- Name: tasks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -103,35 +100,12 @@ CREATE SEQUENCE public.tasks_id_seq
 
 
 --
--- TOC entry 2884 (class 0 OID 0)
+-- TOC entry 2881 (class 0 OID 0)
 -- Dependencies: 198
 -- Name: tasks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.tasks_id_seq OWNED BY public.tasks.id;
-
-
---
--- TOC entry 199 (class 1259 OID 24644)
--- Name: tasks_user_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.tasks_user_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- TOC entry 2885 (class 0 OID 0)
--- Dependencies: 199
--- Name: tasks_user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.tasks_user_id_seq OWNED BY public.tasks.user_id;
 
 
 --
@@ -161,7 +135,7 @@ CREATE SEQUENCE public.users_id_seq
 
 
 --
--- TOC entry 2886 (class 0 OID 0)
+-- TOC entry 2882 (class 0 OID 0)
 -- Dependencies: 196
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -170,7 +144,7 @@ ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
--- TOC entry 2743 (class 2604 OID 24782)
+-- TOC entry 2740 (class 2604 OID 24825)
 -- Name: subtasks id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -178,7 +152,7 @@ ALTER TABLE ONLY public.subtasks ALTER COLUMN id SET DEFAULT nextval('public.sub
 
 
 --
--- TOC entry 2741 (class 2604 OID 24649)
+-- TOC entry 2739 (class 2604 OID 24795)
 -- Name: tasks id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -186,15 +160,7 @@ ALTER TABLE ONLY public.tasks ALTER COLUMN id SET DEFAULT nextval('public.tasks_
 
 
 --
--- TOC entry 2742 (class 2604 OID 24650)
--- Name: tasks user_id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tasks ALTER COLUMN user_id SET DEFAULT nextval('public.tasks_user_id_seq'::regclass);
-
-
---
--- TOC entry 2740 (class 2604 OID 24637)
+-- TOC entry 2738 (class 2604 OID 24637)
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -202,7 +168,7 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- TOC entry 2745 (class 2606 OID 24641)
+-- TOC entry 2742 (class 2606 OID 24641)
 -- Name: users UNIQUE_email; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -211,25 +177,25 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 2751 (class 2606 OID 24784)
+-- TOC entry 2748 (class 2606 OID 24827)
 -- Name: subtasks subtasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.subtasks
-    ADD CONSTRAINT subtasks_pkey PRIMARY KEY (id, user_id, task_id);
+    ADD CONSTRAINT subtasks_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2749 (class 2606 OID 24655)
+-- TOC entry 2746 (class 2606 OID 24800)
 -- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tasks
-    ADD CONSTRAINT tasks_pkey PRIMARY KEY (id, user_id);
+    ADD CONSTRAINT tasks_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2747 (class 2606 OID 24639)
+-- TOC entry 2744 (class 2606 OID 24639)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -238,24 +204,24 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 2753 (class 2606 OID 24785)
--- Name: subtasks FK_task; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- TOC entry 2750 (class 2606 OID 24828)
+-- Name: subtasks FK_task_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.subtasks
-    ADD CONSTRAINT "FK_task" FOREIGN KEY (task_id, user_id) REFERENCES public.tasks(id, user_id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT "FK_task_id" FOREIGN KEY (task_id) REFERENCES public.tasks(id);
 
 
 --
--- TOC entry 2752 (class 2606 OID 24656)
--- Name: tasks FK_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- TOC entry 2749 (class 2606 OID 24801)
+-- Name: tasks FK_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tasks
-    ADD CONSTRAINT "FK_user" FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT "FK_user_id" FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
--- Completed on 2019-03-17 18:56:04 UTC
+-- Completed on 2019-03-31 23:31:40 UTC
 
 --
 -- PostgreSQL database dump complete

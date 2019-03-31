@@ -18,7 +18,7 @@ type ctxKey string
 
 const (
 	authenticationHeader             = "Authorization"
-	authenticationHeaderPrefix       = "Basic: "
+	authenticationHeaderPrefix       = "Basic "
 	authenticationHeaderPrefixLength = len(authenticationHeaderPrefix)
 	userCtxKey                       = ctxKey("user")
 )
