@@ -8,9 +8,10 @@ type User struct {
 
 // Task is a task struct
 type Task struct {
-	ID          int      `json:"id"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Due         int64    `json:"due"`
-	Subtasks    []string `json:"subtasks"`
+	ID          int        `json:"id"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Due         int64      `json:"due"`
+	Subtasks    []string   `json:"subtasks"`
+	Coords      [2]float64 `json:"coords"`
 }

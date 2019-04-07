@@ -5,7 +5,7 @@
 -- Dumped from database version 10.4 (Debian 10.4-1.pgdg90+1)
 -- Dumped by pg_dump version 10.4
 
--- Started on 2019-03-31 23:31:40 UTC
+-- Started on 2019-04-07 02:56:42 UTC
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -81,7 +81,9 @@ CREATE TABLE public.tasks (
     user_id integer NOT NULL,
     title character varying(128) NOT NULL,
     description character varying(512),
-    due date NOT NULL
+    due date NOT NULL,
+    latitude double precision,
+    longitude double precision
 );
 
 
@@ -221,7 +223,7 @@ ALTER TABLE ONLY public.tasks
     ADD CONSTRAINT "FK_user_id" FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
--- Completed on 2019-03-31 23:31:40 UTC
+-- Completed on 2019-04-07 02:56:42 UTC
 
 --
 -- PostgreSQL database dump complete

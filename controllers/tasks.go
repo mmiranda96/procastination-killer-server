@@ -72,7 +72,7 @@ func (c *Task) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 func (c *Task) getTasksFromDB(email string) ([]*models.Task, error) {
 	const query = `
-	SELECT tasks.id, title, description, due
+	SELECT tasks.id, title, description, due, latitude, longitude
 	FROM tasks
 	JOIN users
 	ON tasks.user_id = users.id
@@ -87,8 +87,12 @@ func (c *Task) getTasksFromDB(email string) ([]*models.Task, error) {
 	tasks := make([]*models.Task, 0)
 	for rows.Next() {
 		task := &models.Task{}
-		var due time.Time
-		if err := rows.Scan(&task.ID, &task.Title, &description, &due); err != nil {
+		var (
+			due       time.Time
+			latitude  sql.NullFloat64
+			longitude sql.NullFloat64
+		)
+		if err := rows.Scan(&task.ID, &task.Title, &description, &due, &latitude, &longitude); err != nil {
 			return nil, err
 		}
 
@@ -117,6 +121,7 @@ func (c *Task) getTasksFromDB(email string) ([]*models.Task, error) {
 		task.Description = description.String
 		task.Subtasks = subtasks
 		task.Due = due.Unix()
+		task.Coords = [2]float64{latitude.Float64, longitude.Float64}
 		tasks = append(tasks, task)
 	}
 
@@ -130,13 +135,13 @@ func (c *Task) createTaskInDB(email string, task *models.Task) error {
 	}
 
 	const query = `
-	INSERT INTO tasks(user_id, title, description, due)
-	VALUES ($1, $2, $3, $4)
+	INSERT INTO tasks(user_id, title, description, due, latitude, longitude)
+	VALUES ($1, $2, $3, $4, $5, $6)
 	RETURNING id;
 	`
 	due := time.Unix(task.Due, 0)
 	var taskID int
-	if err := c.DB.QueryRow(query, userID, task.Title, task.Description, due).Scan(&taskID); err != nil {
+	if err := c.DB.QueryRow(query, userID, task.Title, task.Description, due, task.Coords[0], task.Coords[1]).Scan(&taskID); err != nil {
 		return err
 	}
 
