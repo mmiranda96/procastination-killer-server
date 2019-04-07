@@ -5,7 +5,7 @@
 -- Dumped from database version 10.4 (Debian 10.4-1.pgdg90+1)
 -- Dumped by pg_dump version 10.4
 
--- Started on 2019-04-07 02:56:42 UTC
+-- Started on 2019-04-07 17:36:05 UTC
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -26,7 +26,7 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- TOC entry 2879 (class 0 OID 0)
+-- TOC entry 2884 (class 0 OID 0)
 -- Dependencies: 1
 -- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
 --
@@ -37,7 +37,7 @@ COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 SET default_with_oids = false;
 
 --
--- TOC entry 201 (class 1259 OID 24822)
+-- TOC entry 199 (class 1259 OID 24848)
 -- Name: subtasks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -49,7 +49,7 @@ CREATE TABLE public.subtasks (
 
 
 --
--- TOC entry 200 (class 1259 OID 24820)
+-- TOC entry 198 (class 1259 OID 24846)
 -- Name: subtasks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -63,8 +63,8 @@ CREATE SEQUENCE public.subtasks_id_seq
 
 
 --
--- TOC entry 2880 (class 0 OID 0)
--- Dependencies: 200
+-- TOC entry 2885 (class 0 OID 0)
+-- Dependencies: 198
 -- Name: subtasks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -72,13 +72,12 @@ ALTER SEQUENCE public.subtasks_id_seq OWNED BY public.subtasks.id;
 
 
 --
--- TOC entry 199 (class 1259 OID 24792)
+-- TOC entry 197 (class 1259 OID 24837)
 -- Name: tasks; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.tasks (
     id integer NOT NULL,
-    user_id integer NOT NULL,
     title character varying(128) NOT NULL,
     description character varying(512),
     due date NOT NULL,
@@ -88,7 +87,7 @@ CREATE TABLE public.tasks (
 
 
 --
--- TOC entry 198 (class 1259 OID 24790)
+-- TOC entry 196 (class 1259 OID 24835)
 -- Name: tasks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -102,8 +101,8 @@ CREATE SEQUENCE public.tasks_id_seq
 
 
 --
--- TOC entry 2881 (class 0 OID 0)
--- Dependencies: 198
+-- TOC entry 2886 (class 0 OID 0)
+-- Dependencies: 196
 -- Name: tasks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -111,7 +110,7 @@ ALTER SEQUENCE public.tasks_id_seq OWNED BY public.tasks.id;
 
 
 --
--- TOC entry 197 (class 1259 OID 24634)
+-- TOC entry 201 (class 1259 OID 24861)
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -123,7 +122,7 @@ CREATE TABLE public.users (
 
 
 --
--- TOC entry 196 (class 1259 OID 24632)
+-- TOC entry 200 (class 1259 OID 24859)
 -- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -137,8 +136,8 @@ CREATE SEQUENCE public.users_id_seq
 
 
 --
--- TOC entry 2882 (class 0 OID 0)
--- Dependencies: 196
+-- TOC entry 2887 (class 0 OID 0)
+-- Dependencies: 200
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -146,7 +145,18 @@ ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
--- TOC entry 2740 (class 2604 OID 24825)
+-- TOC entry 202 (class 1259 OID 24867)
+-- Name: users_tasks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.users_tasks (
+    user_id integer NOT NULL,
+    task_id integer NOT NULL
+);
+
+
+--
+-- TOC entry 2743 (class 2604 OID 24851)
 -- Name: subtasks id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -154,7 +164,7 @@ ALTER TABLE ONLY public.subtasks ALTER COLUMN id SET DEFAULT nextval('public.sub
 
 
 --
--- TOC entry 2739 (class 2604 OID 24795)
+-- TOC entry 2742 (class 2604 OID 24840)
 -- Name: tasks id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -162,7 +172,7 @@ ALTER TABLE ONLY public.tasks ALTER COLUMN id SET DEFAULT nextval('public.tasks_
 
 
 --
--- TOC entry 2738 (class 2604 OID 24637)
+-- TOC entry 2744 (class 2604 OID 24864)
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -170,25 +180,16 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- TOC entry 2742 (class 2606 OID 24641)
--- Name: users UNIQUE_email; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT "UNIQUE_email" UNIQUE (email);
-
-
---
--- TOC entry 2748 (class 2606 OID 24827)
+-- TOC entry 2748 (class 2606 OID 24853)
 -- Name: subtasks subtasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.subtasks
-    ADD CONSTRAINT subtasks_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT subtasks_pkey PRIMARY KEY (id, task_id);
 
 
 --
--- TOC entry 2746 (class 2606 OID 24800)
+-- TOC entry 2746 (class 2606 OID 24845)
 -- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -197,7 +198,7 @@ ALTER TABLE ONLY public.tasks
 
 
 --
--- TOC entry 2744 (class 2606 OID 24639)
+-- TOC entry 2750 (class 2606 OID 24866)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -206,24 +207,42 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 2750 (class 2606 OID 24828)
+-- TOC entry 2752 (class 2606 OID 24871)
+-- Name: users_tasks users_tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users_tasks
+    ADD CONSTRAINT users_tasks_pkey PRIMARY KEY (user_id, task_id);
+
+
+--
+-- TOC entry 2753 (class 2606 OID 24854)
 -- Name: subtasks FK_task_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.subtasks
-    ADD CONSTRAINT "FK_task_id" FOREIGN KEY (task_id) REFERENCES public.tasks(id);
+    ADD CONSTRAINT "FK_task_id" FOREIGN KEY (task_id) REFERENCES public.tasks(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- TOC entry 2749 (class 2606 OID 24801)
--- Name: tasks FK_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- TOC entry 2755 (class 2606 OID 24877)
+-- Name: users_tasks FK_task_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tasks
+ALTER TABLE ONLY public.users_tasks
+    ADD CONSTRAINT "FK_task_id" FOREIGN KEY (task_id) REFERENCES public.tasks(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2754 (class 2606 OID 24872)
+-- Name: users_tasks FK_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users_tasks
     ADD CONSTRAINT "FK_user_id" FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
--- Completed on 2019-04-07 02:56:42 UTC
+-- Completed on 2019-04-07 17:36:05 UTC
 
 --
 -- PostgreSQL database dump complete

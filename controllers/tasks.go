@@ -6,8 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/mmiranda96/procastination-killer-server/models"
 )
 
@@ -70,15 +72,52 @@ func (c *Task) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// AddUserToTask adds a user to an existing task
+func (c *Task) AddUserToTask(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	taskID, err := strconv.Atoi(vars["taskID"])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	body, _ := ioutil.ReadAll(r.Body)
+	user := &models.User{}
+	if err := json.Unmarshal(body, user); err != nil {
+		log.Println(err)
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := c.getUserID(user.Email)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// TODO: validate that the requesting user has access to the task
+	if err := c.addUserToTask(userID, taskID); err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (c *Task) getTasksFromDB(email string) ([]*models.Task, error) {
+	userID, err := c.getUserID(email)
+	if err != nil {
+		return nil, err
+	}
+
 	const query = `
-	SELECT tasks.id, title, description, due, latitude, longitude
+	SELECT id, title, description, due, latitude, longitude
 	FROM tasks
-	JOIN users
-	ON tasks.user_id = users.id
-	WHERE users.email = $1;
+	JOIN users_tasks
+	ON tasks.id = users_tasks.task_id
+	WHERE user_id = $1;
 	`
-	rows, err := c.DB.Query(query, email)
+	rows, err := c.DB.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -134,28 +173,28 @@ func (c *Task) createTaskInDB(email string, task *models.Task) error {
 		return err
 	}
 
-	const query = `
-	INSERT INTO tasks(user_id, title, description, due, latitude, longitude)
-	VALUES ($1, $2, $3, $4, $5, $6)
+	var query = `
+	INSERT INTO tasks(title, description, due, latitude, longitude)
+	VALUES ($1, $2, $3, $4, $5)
 	RETURNING id;
 	`
 	due := time.Unix(task.Due, 0)
 	var taskID int
-	if err := c.DB.QueryRow(query, userID, task.Title, task.Description, due, task.Coords[0], task.Coords[1]).Scan(&taskID); err != nil {
+	if err := c.DB.QueryRow(query, task.Title, task.Description, due, task.Coords[0], task.Coords[1]).Scan(&taskID); err != nil {
 		return err
 	}
 
 	for _, subtask := range task.Subtasks {
-		const querySubtasks = `
+		query = `
 		INSERT INTO subtasks(task_id, description)
-		VALUES ($1, $2)
+		VALUES ($1, $2);
 		`
-		if _, err := c.DB.Exec(querySubtasks, taskID, subtask); err != nil {
+		if _, err := c.DB.Exec(query, taskID, subtask); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return c.addUserToTask(userID, taskID)
 }
 
 func (c *Task) updateTaskInDB(email string, task *models.Task) error {
@@ -173,7 +212,7 @@ func (c *Task) updateTaskInDB(email string, task *models.Task) error {
 
 	const querySubtasksDelete = `
 	DELETE FROM subtasks
-	WHERE task_id = $1
+	WHERE task_id = $1;
 	`
 	if _, err := c.DB.Exec(querySubtasksDelete, task.ID); err != nil {
 		return err
@@ -182,7 +221,7 @@ func (c *Task) updateTaskInDB(email string, task *models.Task) error {
 	for _, subtask := range task.Subtasks {
 		const querySubtasks = `
 		INSERT INTO subtasks(task_id, description)
-		VALUES ($1, $2)
+		VALUES ($1, $2);
 		`
 		if _, err := c.DB.Exec(querySubtasks, task.ID, subtask); err != nil {
 			return err
@@ -196,7 +235,7 @@ func (c *Task) getUserID(email string) (int, error) {
 	const query = `
 	SELECT id
 	FROM users
-	WHERE email = $1
+	WHERE email = $1;
 	`
 	var id int
 	if err := c.DB.QueryRow(query, email).Scan(&id); err != nil {
@@ -204,4 +243,14 @@ func (c *Task) getUserID(email string) (int, error) {
 	}
 
 	return id, nil
+}
+
+func (c *Task) addUserToTask(userID, taskID int) error {
+	const query = `
+	INSERT INTO users_tasks(user_id, task_id)
+	VALUES ($1, $2);
+	`
+	_, err := c.DB.Exec(query, userID, taskID)
+
+	return err
 }

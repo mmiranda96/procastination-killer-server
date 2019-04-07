@@ -54,6 +54,7 @@ func main() {
 	server.HandleFunc("/tasks", taskController.GetTasks).Methods(http.MethodGet)
 	server.HandleFunc("/tasks", taskController.CreateTask).Methods(http.MethodPost)
 	server.HandleFunc("/tasks", taskController.UpdateTask).Methods(http.MethodPut)
+	server.HandleFunc("/tasks/{taskID}/addUser", taskController.AddUserToTask).Methods(http.MethodPost)
 
 	server.HandleFunc("/users/login", userController.Login).Methods(http.MethodPost)
 	server.HandleFunc("/users", userController.CreateUser).Methods(http.MethodPost)
