@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq" // Postgres
@@ -13,7 +14,65 @@ import (
 	"github.com/mmiranda96/procastination-killer-server/controllers"
 )
 
-const dbFile = "db.json"
+const (
+	defaultPort = "8080"
+
+	defaultPostgresHost     = "127.0.0.1"
+	defaultPostgresPort     = "5432"
+	defaultPostgresDatabase = "procastination-killer"
+	defaultPostgresUser     = "postgres"
+	defaultPostgresPassword = "postgres"
+
+	portEnvVar             = "PORT"
+	postgresHostEnvVar     = "POSTGRES_HOST"
+	postgresPortEnvVar     = "POSTGRES_PORT"
+	postgresDatabaseEnvVar = "POSTGRES_DATABASE"
+	postgresUserEnvVar     = "POSTGRES_USER"
+	postgresPasswordEnvVar = "POSTGRES_PASSWORD"
+)
+
+var (
+	port string
+
+	postgresHost     string
+	postgresPort     string
+	postgresDatabase string
+	postgresUser     string
+	postgresPassword string
+)
+
+func init() {
+	port = os.Getenv(portEnvVar)
+	if port == "" {
+		port = defaultPort
+
+	}
+
+	postgresHost = os.Getenv(postgresHostEnvVar)
+	if postgresHost == "" {
+		postgresHost = defaultPostgresHost
+	}
+
+	postgresPort = os.Getenv(postgresPortEnvVar)
+	if postgresPort == "" {
+		postgresPort = defaultPostgresPort
+	}
+
+	postgresDatabase = os.Getenv(postgresDatabaseEnvVar)
+	if postgresDatabase == "" {
+		postgresDatabase = defaultPostgresDatabase
+	}
+
+	postgresUser = os.Getenv(postgresUserEnvVar)
+	if postgresUser == "" {
+		postgresUser = defaultPostgresUser
+	}
+
+	postgresPassword = os.Getenv(postgresPasswordEnvVar)
+	if postgresPassword == "" {
+		postgresPassword = defaultPostgresPassword
+	}
+}
 
 func connect() (*sql.DB, error) {
 	ssl := url.Values{}
@@ -21,9 +80,9 @@ func connect() (*sql.DB, error) {
 
 	dsn := url.URL{
 		Scheme:   "postgres",
-		User:     url.UserPassword("postgres", "postgres"),
-		Host:     fmt.Sprintf("127.0.0.1:5432"),
-		Path:     "procastination-killer",
+		User:     url.UserPassword(postgresUser, postgresPassword),
+		Host:     fmt.Sprintf("%s:%s", postgresHost, postgresPort),
+		Path:     postgresDatabase,
 		RawQuery: ssl.Encode(),
 	}
 
@@ -65,7 +124,7 @@ func main() {
 	mux.Handle("/tasks", authenticationMiddleware(server))
 	mux.Handle("/", server)
 
-	address := ":8080"
+	address := fmt.Sprintf(":%s", port)
 	log.Printf("Listening on %s\n", address)
 	log.Fatalln(http.ListenAndServe(address, mux))
 }
