@@ -23,6 +23,7 @@ const (
 	defaultPostgresUser     = "postgres"
 	defaultPostgresPassword = "postgres"
 
+	postgresURLEnvVar      = "DATABASE_URL"
 	portEnvVar             = "PORT"
 	postgresHostEnvVar     = "POSTGRES_HOST"
 	postgresPortEnvVar     = "POSTGRES_PORT"
@@ -34,6 +35,7 @@ const (
 var (
 	port string
 
+	postgresURL      string
 	postgresHost     string
 	postgresPort     string
 	postgresDatabase string
@@ -48,45 +50,55 @@ func init() {
 
 	}
 
-	postgresHost = os.Getenv(postgresHostEnvVar)
-	if postgresHost == "" {
-		postgresHost = defaultPostgresHost
+	postgresURL = os.Getenv(postgresURLEnvVar)
+	if postgresURL != "" {
+		postgresHost = os.Getenv(postgresHostEnvVar)
+		if postgresHost == "" {
+			postgresHost = defaultPostgresHost
+		}
+
+		postgresPort = os.Getenv(postgresPortEnvVar)
+		if postgresPort == "" {
+			postgresPort = defaultPostgresPort
+		}
+
+		postgresDatabase = os.Getenv(postgresDatabaseEnvVar)
+		if postgresDatabase == "" {
+			postgresDatabase = defaultPostgresDatabase
+		}
+
+		postgresUser = os.Getenv(postgresUserEnvVar)
+		if postgresUser == "" {
+			postgresUser = defaultPostgresUser
+		}
+
+		postgresPassword = os.Getenv(postgresPasswordEnvVar)
+		if postgresPassword == "" {
+			postgresPassword = defaultPostgresPassword
+		}
 	}
 
-	postgresPort = os.Getenv(postgresPortEnvVar)
-	if postgresPort == "" {
-		postgresPort = defaultPostgresPort
-	}
-
-	postgresDatabase = os.Getenv(postgresDatabaseEnvVar)
-	if postgresDatabase == "" {
-		postgresDatabase = defaultPostgresDatabase
-	}
-
-	postgresUser = os.Getenv(postgresUserEnvVar)
-	if postgresUser == "" {
-		postgresUser = defaultPostgresUser
-	}
-
-	postgresPassword = os.Getenv(postgresPasswordEnvVar)
-	if postgresPassword == "" {
-		postgresPassword = defaultPostgresPassword
-	}
 }
 
 func connect() (*sql.DB, error) {
-	ssl := url.Values{}
-	ssl.Set("sslmode", "disable")
+	var connectionURL string
+	if postgresURL != "" {
+		connectionURL = postgresURL
+	} else {
+		ssl := url.Values{}
+		ssl.Set("sslmode", "disable")
 
-	dsn := url.URL{
-		Scheme:   "postgres",
-		User:     url.UserPassword(postgresUser, postgresPassword),
-		Host:     fmt.Sprintf("%s:%s", postgresHost, postgresPort),
-		Path:     postgresDatabase,
-		RawQuery: ssl.Encode(),
+		dsn := url.URL{
+			Scheme:   "postgres",
+			User:     url.UserPassword(postgresUser, postgresPassword),
+			Host:     fmt.Sprintf("%s:%s", postgresHost, postgresPort),
+			Path:     postgresDatabase,
+			RawQuery: ssl.Encode(),
+		}
+		connectionURL = dsn.String()
 	}
 
-	db, err := sql.Open("postgres", dsn.String())
+	db, err := sql.Open("postgres", connectionURL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create postgres database driver: %v", err)
 
