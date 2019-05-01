@@ -1,3 +1,5 @@
 *.exe
 *.out
 procastination-killer-server
+vendor/
+.vendor-new/
