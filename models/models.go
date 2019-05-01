@@ -2,8 +2,9 @@ package models
 
 // User is a user struct
 type User struct {
+	Name     string `json:"name"`
 	Email    string `json:"email"`
-	Password string `json:"password"`
+	Password string `json:"password,omitempty"`
 }
 
 // Task is a task struct

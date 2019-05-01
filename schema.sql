@@ -3,9 +3,9 @@
 --
 
 -- Dumped from database version 10.4 (Debian 10.4-1.pgdg90+1)
--- Dumped by pg_dump version 10.4
+-- Dumped by pg_dump version 11.2
 
--- Started on 2019-04-07 17:36:05 UTC
+-- Started on 2019-05-01 00:50:17 UTC
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16,23 +16,6 @@ SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET row_security = off;
-
---
--- TOC entry 1 (class 3079 OID 12980)
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
---
--- TOC entry 2884 (class 0 OID 0)
--- Dependencies: 1
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
 
 SET default_with_oids = false;
 
@@ -63,7 +46,7 @@ CREATE SEQUENCE public.subtasks_id_seq
 
 
 --
--- TOC entry 2885 (class 0 OID 0)
+-- TOC entry 2882 (class 0 OID 0)
 -- Dependencies: 198
 -- Name: subtasks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -101,7 +84,7 @@ CREATE SEQUENCE public.tasks_id_seq
 
 
 --
--- TOC entry 2886 (class 0 OID 0)
+-- TOC entry 2883 (class 0 OID 0)
 -- Dependencies: 196
 -- Name: tasks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -117,7 +100,8 @@ ALTER SEQUENCE public.tasks_id_seq OWNED BY public.tasks.id;
 CREATE TABLE public.users (
     id integer NOT NULL,
     email character varying(64) NOT NULL,
-    password character varying(64) NOT NULL
+    password character varying(128) NOT NULL,
+    name character varying(64) NOT NULL
 );
 
 
@@ -136,7 +120,7 @@ CREATE SEQUENCE public.users_id_seq
 
 
 --
--- TOC entry 2887 (class 0 OID 0)
+-- TOC entry 2884 (class 0 OID 0)
 -- Dependencies: 200
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -242,7 +226,7 @@ ALTER TABLE ONLY public.users_tasks
     ADD CONSTRAINT "FK_user_id" FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
--- Completed on 2019-04-07 17:36:05 UTC
+-- Completed on 2019-05-01 00:50:17 UTC
 
 --
 -- PostgreSQL database dump complete

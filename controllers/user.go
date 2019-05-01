@@ -5,42 +5,15 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/mmiranda96/procastination-killer-server/models"
 )
-
-type ctxKey string
-
-const (
-	authenticationHeader             = "Authorization"
-	authenticationHeaderPrefix       = "Basic "
-	authenticationHeaderPrefixLength = len(authenticationHeaderPrefix)
-	userCtxKey                       = ctxKey("user")
-)
-
-func getUserFromHeader(header string) (*models.User, error) {
-	if len(header) <= authenticationHeaderPrefixLength || header[:authenticationHeaderPrefixLength] != authenticationHeaderPrefix {
-		return nil, errors.New("Bad authentication")
-	}
-	data, err := base64.StdEncoding.DecodeString(header[authenticationHeaderPrefixLength:])
-	if err != nil {
-		return nil, err
-	}
-	values := strings.Split(string(data), ":")
-	if len(values) != 2 {
-		return nil, errors.New("Bad authentication")
-	}
-
-	return &models.User{
-		Email:    values[0],
-		Password: values[1],
-	}, nil
-}
 
 // User is a contrller for users
 type User struct {
@@ -63,6 +36,32 @@ func (c *User) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateUser updates an existing user
+func (c *User) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	authUser, err := c.getValidatedUserFromHeader(r.Header)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	} else if authUser == nil {
+		http.Error(w, "Invalid email and/or password", http.StatusForbidden)
+		return
+	}
+
+	body, _ := ioutil.ReadAll(r.Body)
+	user := &models.User{}
+	if err := json.Unmarshal(body, user); err != nil {
+		log.Println(err)
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+	}
+
+	if err := c.updateUserInDB(authUser.Email, user); err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 // Login validates an email with a password
 func (c *User) Login(w http.ResponseWriter, r *http.Request) {
 	body, _ := ioutil.ReadAll(r.Body)
@@ -73,32 +72,38 @@ func (c *User) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if storedUser, err := c.getUserFromDB(user.Email); err != nil {
+	storedUser, err := c.getUserFromDB(user.Email)
+	if err != nil {
 		log.Println(err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
-	} else if storedUser == nil || storedUser.Password != user.Password {
+	} else if storedUser == nil || !doPasswordsMatch(user.Password, storedUser.Password) {
 		http.Error(w, "Invalid email and/or password", http.StatusForbidden)
 		return
 	}
+
+	storedUser.Password = ""
+	w.Header().Set("Content-Type", "application/json")
+	bytes, _ := json.Marshal(storedUser)
+	w.Write(bytes)
 }
+
+type ctxKey string
+
+const (
+	userCtxKey = ctxKey("user")
+)
 
 // NewAuthenticationMiddleware creates a new authentication middleware
 func (c *User) NewAuthenticationMiddleware() func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user, err := getUserFromHeader(r.Header.Get(authenticationHeader))
+			user, err := c.getValidatedUserFromHeader(r.Header)
 			if err != nil {
-				log.Println(err)
-				http.Error(w, err.Error(), http.StatusForbidden)
-				return
-			}
-
-			if storedUser, err := c.getUserFromDB(user.Email); err != nil {
 				log.Println(err)
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
-			} else if storedUser == nil || storedUser.Password != user.Password {
+			} else if user == nil {
 				http.Error(w, "Invalid email and/or password", http.StatusForbidden)
 				return
 			}
@@ -109,14 +114,50 @@ func (c *User) NewAuthenticationMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
+const (
+	authenticationHeader             = "Authorization"
+	authenticationHeaderPrefix       = "Basic "
+	authenticationHeaderPrefixLength = len(authenticationHeaderPrefix)
+)
+
+func (c *User) getValidatedUserFromHeader(header http.Header) (*models.User, error) {
+	authHeader := header.Get(authenticationHeader)
+	if len(authHeader) <= authenticationHeaderPrefixLength || authHeader[:authenticationHeaderPrefixLength] != authenticationHeaderPrefix {
+		return nil, nil
+	}
+
+	data, err := base64.StdEncoding.DecodeString(authHeader[authenticationHeaderPrefixLength:])
+	if err != nil {
+		return nil, nil
+	}
+	values := strings.Split(string(data), ":")
+	if len(values) != 2 {
+		return nil, nil
+	}
+
+	user := &models.User{
+		Email:    values[0],
+		Password: values[1],
+	}
+
+	storedUser, err := c.getUserFromDB(user.Email)
+	if err != nil {
+		return nil, err
+	} else if storedUser == nil || !doPasswordsMatch(user.Password, storedUser.Password) {
+		return nil, nil
+	}
+
+	return user, nil
+}
+
 func (c *User) getUserFromDB(email string) (*models.User, error) {
 	const query = `
-	SELECT email, password
+	SELECT email, name, password
 	FROM users
 	WHERE email = $1;
 	`
 	user := &models.User{}
-	switch err := c.DB.QueryRow(query, email).Scan(&user.Email, &user.Password); err {
+	switch err := c.DB.QueryRow(query, email).Scan(&user.Email, &user.Name, &user.Password); err {
 	case nil:
 		return user, nil
 	case sql.ErrNoRows:
@@ -128,10 +169,31 @@ func (c *User) getUserFromDB(email string) (*models.User, error) {
 
 func (c *User) createUserInDB(user *models.User) error {
 	const query = `
-	INSERT INTO users(email, password)
-	VALUES ($1, $2);
+	INSERT INTO users(email, name, password)
+	VALUES ($1, $2, $3);
 	`
-	_, err := c.DB.Exec(query, user.Email, user.Password)
+	_, err := c.DB.Exec(query, user.Email, user.Name, hashPassword(user.Password))
 
 	return err
+}
+
+func (c *User) updateUserInDB(currentEmail string, user *models.User) error {
+	const query = `
+	UPDATE users
+	SET name = $1, email = $2
+	WHERE email = $3;
+	`
+	_, err := c.DB.Exec(query, user.Name, user.Email, currentEmail)
+
+	return err
+}
+
+func hashPassword(password string) string {
+	hashed, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+
+	return string(hashed)
+}
+
+func doPasswordsMatch(given, expected string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(expected), []byte(given)) == nil
 }

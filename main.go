@@ -58,6 +58,7 @@ func main() {
 
 	server.HandleFunc("/users/login", userController.Login).Methods(http.MethodPost)
 	server.HandleFunc("/users", userController.CreateUser).Methods(http.MethodPost)
+	server.HandleFunc("/users", userController.UpdateUser).Methods(http.MethodPut)
 
 	mux := http.NewServeMux()
 	authenticationMiddleware := userController.NewAuthenticationMiddleware()
