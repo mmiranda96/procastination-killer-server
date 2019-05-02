@@ -37,10 +37,6 @@
   branch = "master"
   name = "golang.org/x/crypto"
 
-[[constraint]]
-  branch = "master"
-  name = "github.com/domodwyer/mailyak"
-
 [prune]
   go-tests = true
   unused-packages = true
