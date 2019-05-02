@@ -34,6 +34,22 @@ func (c *Task) GetTasks(w http.ResponseWriter, r *http.Request) {
 	w.Write(bytes)
 }
 
+// GetMostUrgentTasks returns the three most urgent tasks from a user
+func (c *Task) GetMostUrgentTasks(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value(userCtxKey).(*models.User)
+
+	tasks, err := c.getMostUrgentTasksFromDB(user.Email)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	bytes, _ := json.Marshal(tasks)
+	w.Write(bytes)
+}
+
 // CreateTask creates a new task for a user
 func (c *Task) CreateTask(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(userCtxKey).(*models.User)
@@ -118,6 +134,72 @@ func (c *Task) getTasksFromDB(email string) ([]*models.Task, error) {
 	WHERE user_id = $1;
 	`
 	rows, err := c.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var description sql.NullString
+	tasks := make([]*models.Task, 0)
+	for rows.Next() {
+		task := &models.Task{}
+		var (
+			due       time.Time
+			latitude  sql.NullFloat64
+			longitude sql.NullFloat64
+		)
+		if err := rows.Scan(&task.ID, &task.Title, &description, &due, &latitude, &longitude); err != nil {
+			return nil, err
+		}
+
+		const subtasksQuery = `
+		SELECT subtasks.description
+		FROM subtasks
+		JOIN tasks
+		ON subtasks.task_id = tasks.id
+		WHERE subtasks.task_id = $1;
+		`
+		subtasksRows, err := c.DB.Query(subtasksQuery, task.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		subtasks := make([]string, 0)
+		for subtasksRows.Next() {
+			var subtask string
+			if err := subtasksRows.Scan(&subtask); err != nil {
+				return nil, err
+			}
+
+			subtasks = append(subtasks, subtask)
+		}
+
+		task.Description = description.String
+		task.Subtasks = subtasks
+		task.Due = due.Unix()
+		task.Coords = [2]float64{latitude.Float64, longitude.Float64}
+		tasks = append(tasks, task)
+	}
+
+	return tasks, nil
+}
+
+func (c *Task) getMostUrgentTasksFromDB(email string) ([]*models.Task, error) {
+	userID, err := c.getUserID(email)
+	if err != nil {
+		return nil, err
+	}
+
+	const query = `
+	SELECT id, title, description, due, latitude, longitude
+	FROM tasks
+	JOIN users_tasks
+	ON tasks.id = users_tasks.task_id
+	WHERE user_id = $1
+	AND due >= $2
+	ORDER BY due ASC
+	LIMIT 3;
+	`
+	rows, err := c.DB.Query(query, userID, time.Now().Format("2006-01-02"))
 	if err != nil {
 		return nil, err
 	}

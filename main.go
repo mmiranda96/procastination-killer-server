@@ -147,6 +147,7 @@ func main() {
 	server := mux.NewRouter()
 
 	server.HandleFunc("/tasks", taskController.GetTasks).Methods(http.MethodGet)
+	server.HandleFunc("/tasks/urgent", taskController.GetMostUrgentTasks).Methods(http.MethodGet)
 	server.HandleFunc("/tasks", taskController.CreateTask).Methods(http.MethodPost)
 	server.HandleFunc("/tasks", taskController.UpdateTask).Methods(http.MethodPut)
 	server.HandleFunc("/tasks/{taskID}/addUser", taskController.AddUserToTask).Methods(http.MethodPost)
@@ -160,6 +161,7 @@ func main() {
 	mux := http.NewServeMux()
 	authenticationMiddleware := userController.NewAuthenticationMiddleware()
 	mux.Handle("/tasks", authenticationMiddleware(server))
+	mux.Handle("/tasks/", authenticationMiddleware(server))
 	mux.Handle("/", server)
 
 	address := fmt.Sprintf("0.0.0.0:%s", port)
