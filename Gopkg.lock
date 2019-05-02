@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  branch = "master"
+  digest = "1:3cca54b89f4e60143570d3680cb09d76a59b1a27bbc179d7b175415fe5182356"
+  name = "github.com/domodwyer/mailyak"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "89444b05799b115121931b3b6bd05e820e69dc8b"
+
+[[projects]]
   digest = "1:582b704bebaa06b48c29b0cec224a6058a09c86883aaddabde889cd1a5f73e1b"
   name = "github.com/google/uuid"
   packages = ["."]
@@ -44,6 +52,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/domodwyer/mailyak",
     "github.com/google/uuid",
     "github.com/gorilla/mux",
     "github.com/lib/pq",

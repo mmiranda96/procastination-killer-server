@@ -12,6 +12,7 @@ import (
 	"net/smtp"
 	"strings"
 
+	"github.com/domodwyer/mailyak"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
@@ -231,9 +232,26 @@ func (c *User) generateTokenAndSendEmail(email string) {
 	}()
 }
 
+const (
+	emailFromName = "Procastination Killer"
+	emailSubject  = "Password reset"
+)
+
 func (c *User) sendPasswordResetEmail(email, token string) error {
+	mail := mailyak.New(c.SMTPAddress, nil)
+	mail.From(c.Email)
+	mail.FromName(emailFromName)
+	mail.To(email)
+	mail.Subject(emailSubject)
+	data := fmt.Sprintf("Click here to restore your email: %s%s", c.DeepLinkPrefix, token)
+	mail.Plain().Set(data)
+
+	return mail.Send()
+}
+
+func (c *User) sendPasswordResetEmail2(email, token string) error {
 	data := []byte(fmt.Sprintf("Click here to restore your email: %s%s", c.DeepLinkPrefix, token))
-	return smtp.SendMail(c.SMTPAddress, nil, c.Email, []string{email}, data)
+	return smtp.SendMail(c.SMTPAddress, c.Auth, c.Email, []string{email}, data)
 }
 
 func hashPassword(password string) string {
