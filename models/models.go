@@ -1,5 +1,12 @@
 package models
 
+// ResetPasswordRequest is a request for password reset
+type ResetPasswordRequest struct {
+	Token    string `json:"token"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 // User is a user struct
 type User struct {
 	Name     string `json:"name"`
