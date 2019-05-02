@@ -12,13 +12,23 @@
 				{
 					"name": "Get",
 					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "mikemp96@gmail.com",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "pass",
+									"type": "string"
+								}
+							]
+						},
 						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Basic: bWlrZW1wOTZAZ21haWwuY29tOlBhc3N3b3JkMSE="
-							}
-						],
+						"header": [],
 						"body": {},
 						"url": {
 							"raw": "{{SCHEME}}://{{HOST}}:{{PORT}}/tasks",
@@ -37,6 +47,21 @@
 				{
 					"name": "Create",
 					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "pass",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "mikemp96@gmail.com",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -167,7 +192,108 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"email\": \"mikemp96@gmail.com\",\n\t\"password\": \"Password1!\"\n}"
+							"raw": "{\n\t\"name\": \"Mike\",\n\t\"email\": \"mikemp96@gmail.com\",\n\t\"password\": \"pass\"\n}"
+						},
+						"url": {
+							"raw": "{{SCHEME}}://{{HOST}}:{{PORT}}/users",
+							"protocol": "{{SCHEME}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"port": "{{PORT}}",
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send Reset Password Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"email\": \"mikemp96@gmail.com\"\n}"
+						},
+						"url": {
+							"raw": "{{SCHEME}}://{{HOST}}:{{PORT}}/users/sendResetPasswordEmail",
+							"protocol": "{{SCHEME}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"port": "{{PORT}}",
+							"path": [
+								"users",
+								"sendResetPasswordEmail"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"token\": \"9fe3a80b-fcc3-4c68-8977-919eaa8b6bae\",\n\t\"email\": \"mikemp96@gmail.com\",\n\t\"password\": \"123\"\n}"
+						},
+						"url": {
+							"raw": "{{SCHEME}}://{{HOST}}:{{PORT}}/users/resetPassword",
+							"protocol": "{{SCHEME}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"port": "{{PORT}}",
+							"path": [
+								"users",
+								"resetPassword"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "mikemp96@gmail.com",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "pass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"Mike\",\n\t\"email\": \"mikemp96@gmail.com\"\n}"
 						},
 						"url": {
 							"raw": "{{SCHEME}}://{{HOST}}:{{PORT}}/users",
@@ -195,7 +321,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"email\": \"mikemp96@gmail.com\",\n\t\"password\": \"Password1!\"\n}"
+							"raw": "{\n\t\"email\": \"mikemp96@gmail.com\",\n\t\"password\": \"pass\"\n}"
 						},
 						"url": {
 							"raw": "{{SCHEME}}://{{HOST}}:{{PORT}}/users/login",
