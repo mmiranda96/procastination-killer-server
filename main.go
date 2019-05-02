@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/smtp"
 	"net/url"
 	"os"
 
@@ -141,7 +140,7 @@ func main() {
 		DeepLinkPrefix: deepLinkPrefix,
 		SMTPAddress:    smtpAddress,
 		Email:          mailEmail,
-		Auth:           smtp.PlainAuth("", mailEmail, mailPassword, smtpAddress),
+		Password:       mailPassword,
 	}
 	taskController := &controllers.Task{DB: db}
 

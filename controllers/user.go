@@ -2,17 +2,19 @@ package controllers
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
+	"net/mail"
 	"net/smtp"
 	"strings"
 
-	"github.com/domodwyer/mailyak"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
@@ -25,7 +27,7 @@ type User struct {
 	DeepLinkPrefix string
 	SMTPAddress    string
 	Email          string
-	Auth           smtp.Auth
+	Password       string
 }
 
 // CreateUser creates a new user
@@ -319,20 +321,78 @@ const (
 )
 
 func (c *User) sendPasswordResetEmail(email, token string) error {
-	mail := mailyak.New(c.SMTPAddress, c.Auth)
-	mail.From(c.Email)
-	mail.FromName(emailFromName)
-	mail.To(email)
-	mail.Subject(emailSubject)
 	data := fmt.Sprintf("Click here to restore your email: %s%s", c.DeepLinkPrefix, token)
-	mail.Plain().Set(data)
 
-	return mail.Send()
-}
+	// Code taken from https://gist.github.com/chrisgillis/10888032
+	from := mail.Address{Name: "Procastination Killer", Address: c.Email}
+	to := mail.Address{Name: "", Address: email}
 
-func (c *User) sendPasswordResetEmail2(email, token string) error {
-	data := []byte(fmt.Sprintf("Click here to restore your email: %s%s", c.DeepLinkPrefix, token))
-	return smtp.SendMail(c.SMTPAddress, c.Auth, c.Email, []string{email}, data)
+	// Setup headers
+	headers := make(map[string]string)
+	headers["From"] = from.String()
+	headers["To"] = to.String()
+	headers["Subject"] = emailSubject
+
+	// Setup message
+	message := ""
+	for k, v := range headers {
+		message += fmt.Sprintf("%s: %s\r\n", k, v)
+	}
+	message += "\r\n" + data
+
+	host, _, _ := net.SplitHostPort(c.SMTPAddress)
+	auth := smtp.PlainAuth("", c.Email, c.Password, host)
+
+	// TLS config
+	tlsconfig := &tls.Config{
+		InsecureSkipVerify: true,
+		ServerName:         host,
+	}
+
+	// Here is the key, you need to call tls.Dial instead of smtp.Dial
+	// for smtp servers running on 465 that require an ssl connection
+	// from the very beginning (no starttls)
+	conn, err := tls.Dial("tcp", c.SMTPAddress, tlsconfig)
+	if err != nil {
+		return err
+	}
+
+	client, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return err
+	}
+
+	// Auth
+	if err = client.Auth(auth); err != nil {
+		return err
+	}
+
+	// To && From
+	if err = client.Mail(from.Address); err != nil {
+		return err
+	}
+
+	if err = client.Rcpt(to.Address); err != nil {
+		return err
+	}
+
+	// Data
+	w, err := client.Data()
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write([]byte(message))
+	if err != nil {
+		return err
+	}
+
+	err = w.Close()
+	if err != nil {
+		return err
+	}
+
+	return client.Quit()
 }
 
 func hashPassword(password string) string {
