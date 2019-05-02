@@ -128,6 +128,8 @@ func connect() (*sql.DB, error) {
 	return db, nil
 }
 
+const deepLinkPrefix = "https://procastination-killer.com/"
+
 func main() {
 	db, err := connect()
 	if err != nil {
@@ -136,7 +138,7 @@ func main() {
 
 	userController := &controllers.User{
 		DB:             db,
-		DeepLinkPrefix: "https://procastination-killer.com",
+		DeepLinkPrefix: deepLinkPrefix,
 		SMTPAddress:    smtpAddress,
 		Email:          mailEmail,
 		Auth:           smtp.PlainAuth("", mailEmail, mailPassword, smtpAddress),

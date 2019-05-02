@@ -124,7 +124,22 @@ func (c *User) SendPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
 
 // ResetPassword resets a password with a token
 func (c *User) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	body, _ := ioutil.ReadAll(r.Body)
+	request := &models.ResetPasswordRequest{}
+	if err := json.Unmarshal(body, request); err != nil {
+		log.Println(err)
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
+	}
 
+	if ok, err := c.changePassword(request.Token, request.Email, request.Password); err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	} else if !ok {
+		http.Error(w, "Invalid request", http.StatusUnauthorized)
+		return
+	}
 }
 
 // NewAuthenticationMiddleware creates a new authentication middleware
@@ -221,14 +236,80 @@ func (c *User) updateUserInDB(currentEmail string, user *models.User) error {
 	return err
 }
 
+func (c *User) storeResetPasswordToken(email, token string) error {
+	const query = `
+	INSERT INTO reset_password_tokens(id, email)
+	VALUES ($1, $2);
+	`
+	_, err := c.DB.Exec(query, token, email)
+
+	return err
+}
+
+func (c *User) changePassword(token, email, password string) (bool, error) {
+	tx, err := c.DB.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	const tokenQuery = `
+	SELECT email
+	FROM reset_password_tokens
+	WHERE id = $1;
+	`
+	var tokenEmail string
+	if err := tx.QueryRow(tokenQuery, token).Scan(&tokenEmail); err != nil {
+		tx.Rollback()
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	if email != tokenEmail {
+		tx.Rollback()
+		return false, nil
+	}
+
+	const updateQuery = `
+	UPDATE users
+	SET password = $1
+	WHERE email = $2;
+	`
+	if _, err := tx.Exec(updateQuery, hashPassword(password), email); err != nil {
+		tx.Rollback()
+		return false, err
+	}
+
+	const deleteQuery = `
+	DELETE FROM reset_password_tokens
+	WHERE id = $1;`
+	if _, err := tx.Exec(deleteQuery, token); err != nil {
+		tx.Rollback()
+		return false, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (c *User) generateTokenAndSendEmail(email string) {
 	go func() {
 		token := uuid.New().String()
+		if err := c.storeResetPasswordToken(email, token); err != nil {
+			log.Println(err)
+			return
+		}
+
 		if err := c.sendPasswordResetEmail(email, token); err != nil {
 			log.Println(err)
-		} else {
-			log.Println("Email sent successfully.")
+			return
 		}
+		log.Println("Email sent successfully")
 	}()
 }
 
