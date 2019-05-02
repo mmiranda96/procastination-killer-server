@@ -5,7 +5,7 @@
 -- Dumped from database version 10.4 (Debian 10.4-1.pgdg90+1)
 -- Dumped by pg_dump version 11.2
 
--- Started on 2019-05-01 00:50:17 UTC
+-- Started on 2019-05-02 16:46:15 UTC
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,6 +18,17 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 SET default_with_oids = false;
+
+--
+-- TOC entry 203 (class 1259 OID 33929)
+-- Name: reset_password_tokens; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reset_password_tokens (
+    id character varying(64) NOT NULL,
+    email character varying(64) NOT NULL
+);
+
 
 --
 -- TOC entry 199 (class 1259 OID 24848)
@@ -46,7 +57,7 @@ CREATE SEQUENCE public.subtasks_id_seq
 
 
 --
--- TOC entry 2882 (class 0 OID 0)
+-- TOC entry 2888 (class 0 OID 0)
 -- Dependencies: 198
 -- Name: subtasks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -84,7 +95,7 @@ CREATE SEQUENCE public.tasks_id_seq
 
 
 --
--- TOC entry 2883 (class 0 OID 0)
+-- TOC entry 2889 (class 0 OID 0)
 -- Dependencies: 196
 -- Name: tasks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -101,7 +112,7 @@ CREATE TABLE public.users (
     id integer NOT NULL,
     email character varying(64) NOT NULL,
     password character varying(128) NOT NULL,
-    name character varying(64) NOT NULL
+    name character varying(64)
 );
 
 
@@ -120,7 +131,7 @@ CREATE SEQUENCE public.users_id_seq
 
 
 --
--- TOC entry 2884 (class 0 OID 0)
+-- TOC entry 2890 (class 0 OID 0)
 -- Dependencies: 200
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
@@ -140,7 +151,7 @@ CREATE TABLE public.users_tasks (
 
 
 --
--- TOC entry 2743 (class 2604 OID 24851)
+-- TOC entry 2747 (class 2604 OID 24851)
 -- Name: subtasks id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -148,7 +159,7 @@ ALTER TABLE ONLY public.subtasks ALTER COLUMN id SET DEFAULT nextval('public.sub
 
 
 --
--- TOC entry 2742 (class 2604 OID 24840)
+-- TOC entry 2746 (class 2604 OID 24840)
 -- Name: tasks id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -156,7 +167,7 @@ ALTER TABLE ONLY public.tasks ALTER COLUMN id SET DEFAULT nextval('public.tasks_
 
 
 --
--- TOC entry 2744 (class 2604 OID 24864)
+-- TOC entry 2748 (class 2604 OID 24864)
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -164,7 +175,16 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- TOC entry 2748 (class 2606 OID 24853)
+-- TOC entry 2758 (class 2606 OID 33933)
+-- Name: reset_password_tokens reset_password_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reset_password_tokens
+    ADD CONSTRAINT reset_password_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2752 (class 2606 OID 24853)
 -- Name: subtasks subtasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -173,7 +193,7 @@ ALTER TABLE ONLY public.subtasks
 
 
 --
--- TOC entry 2746 (class 2606 OID 24845)
+-- TOC entry 2750 (class 2606 OID 24845)
 -- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -182,7 +202,7 @@ ALTER TABLE ONLY public.tasks
 
 
 --
--- TOC entry 2750 (class 2606 OID 24866)
+-- TOC entry 2754 (class 2606 OID 24866)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -191,7 +211,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 2752 (class 2606 OID 24871)
+-- TOC entry 2756 (class 2606 OID 24871)
 -- Name: users_tasks users_tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -200,7 +220,7 @@ ALTER TABLE ONLY public.users_tasks
 
 
 --
--- TOC entry 2753 (class 2606 OID 24854)
+-- TOC entry 2759 (class 2606 OID 24854)
 -- Name: subtasks FK_task_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -209,7 +229,7 @@ ALTER TABLE ONLY public.subtasks
 
 
 --
--- TOC entry 2755 (class 2606 OID 24877)
+-- TOC entry 2761 (class 2606 OID 24877)
 -- Name: users_tasks FK_task_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -218,7 +238,7 @@ ALTER TABLE ONLY public.users_tasks
 
 
 --
--- TOC entry 2754 (class 2606 OID 24872)
+-- TOC entry 2760 (class 2606 OID 24872)
 -- Name: users_tasks FK_user_id; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -226,7 +246,7 @@ ALTER TABLE ONLY public.users_tasks
     ADD CONSTRAINT "FK_user_id" FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
--- Completed on 2019-05-01 00:50:17 UTC
+-- Completed on 2019-05-02 16:46:15 UTC
 
 --
 -- PostgreSQL database dump complete
