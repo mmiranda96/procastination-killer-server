@@ -319,7 +319,7 @@ const (
 )
 
 func (c *User) sendPasswordResetEmail(email, token string) error {
-	mail := mailyak.New(c.SMTPAddress, nil)
+	mail := mailyak.New(c.SMTPAddress, c.Auth)
 	mail.From(c.Email)
 	mail.FromName(emailFromName)
 	mail.To(email)
