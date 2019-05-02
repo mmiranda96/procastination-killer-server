@@ -233,7 +233,7 @@ func (c *User) generateTokenAndSendEmail(email string) {
 
 func (c *User) sendPasswordResetEmail(email, token string) error {
 	data := []byte(fmt.Sprintf("Click here to restore your email: %s%s", c.DeepLinkPrefix, token))
-	return smtp.SendMail(c.SMTPAddress, c.Auth, c.Email, []string{email}, data)
+	return smtp.SendMail(c.SMTPAddress, nil, c.Email, []string{email}, data)
 }
 
 func hashPassword(password string) string {
