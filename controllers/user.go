@@ -5,11 +5,14 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/smtp"
 	"strings"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/mmiranda96/procastination-killer-server/models"
@@ -17,7 +20,11 @@ import (
 
 // User is a contrller for users
 type User struct {
-	DB *sql.DB
+	DB             *sql.DB
+	DeepLinkPrefix string
+	SMTPAddress    string
+	Email          string
+	Auth           smtp.Auth
 }
 
 // CreateUser creates a new user
@@ -93,6 +100,31 @@ type ctxKey string
 const (
 	userCtxKey = ctxKey("user")
 )
+
+// SendPasswordResetEmail sends a password reset email if the user exists
+func (c *User) SendPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
+	body, _ := ioutil.ReadAll(r.Body)
+	user := &models.User{}
+	if err := json.Unmarshal(body, user); err != nil {
+		log.Println(err)
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
+	}
+
+	storedUser, err := c.getUserFromDB(user.Email)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	} else if storedUser != nil {
+		c.generateTokenAndSendEmail(storedUser.Email)
+	}
+}
+
+// ResetPassword resets a password with a token
+func (c *User) ResetPassword(w http.ResponseWriter, r *http.Request) {
+
+}
 
 // NewAuthenticationMiddleware creates a new authentication middleware
 func (c *User) NewAuthenticationMiddleware() func(http.Handler) http.Handler {
@@ -186,6 +218,22 @@ func (c *User) updateUserInDB(currentEmail string, user *models.User) error {
 	_, err := c.DB.Exec(query, user.Name, user.Email, currentEmail)
 
 	return err
+}
+
+func (c *User) generateTokenAndSendEmail(email string) {
+	go func() {
+		token := uuid.New().String()
+		if err := c.sendPasswordResetEmail(email, token); err != nil {
+			log.Println(err)
+		} else {
+			log.Println("Email sent successfully.")
+		}
+	}()
+}
+
+func (c *User) sendPasswordResetEmail(email, token string) error {
+	data := []byte(fmt.Sprintf("Click here to restore your email: %s%s", c.DeepLinkPrefix, token))
+	return smtp.SendMail(c.SMTPAddress, c.Auth, c.Email, []string{email}, data)
 }
 
 func hashPassword(password string) string {
