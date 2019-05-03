@@ -12,6 +12,7 @@ import (
 	firebase "firebase.google.com/go"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq" // Postgres
+	"google.golang.org/api/option"
 
 	"github.com/mmiranda96/procastination-killer-server/controllers"
 )
@@ -37,6 +38,7 @@ const (
 	smtpAddressEnvVar      = "SMTP_ADDRESS"
 	mailEmailEnvVar        = "MAIL_EMAIL"
 	mailPasswordEnvVar     = "MAIL_PASSWORD"
+	credentialsJSONEnvVar  = "CREDENTIALS_JSON"
 )
 
 var (
@@ -49,9 +51,10 @@ var (
 	postgresUser     string
 	postgresPassword string
 
-	smtpAddress  string
-	mailEmail    string
-	mailPassword string
+	smtpAddress     string
+	mailEmail       string
+	mailPassword    string
+	credentialsJSON string
 )
 
 func init() {
@@ -96,6 +99,7 @@ func init() {
 
 	mailEmail = os.Getenv(mailEmailEnvVar)
 	mailPassword = os.Getenv(mailPasswordEnvVar)
+	credentialsJSON = os.Getenv(credentialsJSONEnvVar)
 }
 
 func connect() (*sql.DB, error) {
@@ -137,9 +141,17 @@ func main() {
 		log.Fatalln("error connecting to DB:", err)
 	}
 
-	firebaseApp, err := firebase.NewApp(context.Background(), nil)
-	if err != nil {
-		log.Fatalln("error creating Firebase app:", err)
+	var firebaseApp *firebase.App
+	if credentialsJSON == "" {
+		firebaseApp, err = firebase.NewApp(context.Background(), nil)
+		if err != nil {
+			log.Fatalln("error creating Firebase app:", err)
+		}
+	} else {
+		firebaseApp, err = firebase.NewApp(context.Background(), nil, option.WithCredentialsJSON([]byte(credentialsJSON)))
+		if err != nil {
+			log.Fatalln("error creating Firebase app:", err)
+		}
 	}
 
 	userController := &controllers.User{
