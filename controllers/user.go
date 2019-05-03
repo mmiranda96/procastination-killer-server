@@ -144,6 +144,26 @@ func (c *User) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateFirebaseToken updates the Firebase token of a user
+func (c *User) UpdateFirebaseToken(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value(userCtxKey).(*models.User)
+	log.Println("Updating token for user", user.Email)
+
+	body, _ := ioutil.ReadAll(r.Body)
+	request := &models.UpdateFirebaseTokenRequest{}
+	if err := json.Unmarshal(body, request); err != nil {
+		log.Println(err)
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
+	}
+
+	if err := c.updateFirebaseToken(user.Email, request.FirebaseToken); err != nil {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 // NewAuthenticationMiddleware creates a new authentication middleware
 func (c *User) NewAuthenticationMiddleware() func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
@@ -297,6 +317,17 @@ func (c *User) changePassword(token, email, password string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (c *User) updateFirebaseToken(email, token string) error {
+	const query = `
+	UPDATE users
+	SET firebase_token = $1
+	WHERE email = $2;
+	`
+	_, err := c.DB.Exec(query, token, email)
+
+	return err
 }
 
 func (c *User) generateTokenAndSendEmail(email string) {

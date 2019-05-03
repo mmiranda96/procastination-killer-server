@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"os"
 
+	firebase "firebase.google.com/go"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq" // Postgres
 
@@ -132,7 +134,12 @@ const deepLinkPrefix = "https://procastination-killer.com/"
 func main() {
 	db, err := connect()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("error connecting to DB:", err)
+	}
+
+	firebaseApp, err := firebase.NewApp(context.Background(), nil)
+	if err != nil {
+		log.Fatalln("error creating Firebase app:", err)
 	}
 
 	userController := &controllers.User{
@@ -142,7 +149,10 @@ func main() {
 		Email:          mailEmail,
 		Password:       mailPassword,
 	}
-	taskController := &controllers.Task{DB: db}
+	taskController := &controllers.Task{
+		DB:          db,
+		FirebaseApp: firebaseApp,
+	}
 
 	server := mux.NewRouter()
 
@@ -157,11 +167,13 @@ func main() {
 	server.HandleFunc("/users", userController.UpdateUser).Methods(http.MethodPut)
 	server.HandleFunc("/users/sendResetPasswordEmail", userController.SendPasswordResetEmail).Methods(http.MethodPost)
 	server.HandleFunc("/users/resetPassword", userController.ResetPassword).Methods(http.MethodPost)
+	server.HandleFunc("/users/updateFirebaseToken", userController.UpdateFirebaseToken).Methods(http.MethodPut)
 
 	mux := http.NewServeMux()
 	authenticationMiddleware := userController.NewAuthenticationMiddleware()
 	mux.Handle("/tasks", authenticationMiddleware(server))
 	mux.Handle("/tasks/", authenticationMiddleware(server))
+	mux.Handle("/users/updateFirebaseToken", authenticationMiddleware(server))
 	mux.Handle("/", server)
 
 	address := fmt.Sprintf("0.0.0.0:%s", port)

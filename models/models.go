@@ -1,5 +1,10 @@
 package models
 
+// UpdateFirebaseTokenRequest is a request for password reset
+type UpdateFirebaseTokenRequest struct {
+	FirebaseToken string `json:"firebase_token"`
+}
+
 // ResetPasswordRequest is a request for password reset
 type ResetPasswordRequest struct {
 	Token    string `json:"token"`
@@ -9,9 +14,10 @@ type ResetPasswordRequest struct {
 
 // User is a user struct
 type User struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password,omitempty"`
+	Name          string `json:"name"`
+	Email         string `json:"email"`
+	Password      string `json:"password,omitempty"`
+	FirebaseToken string `json:"firebase_token,omitempty"`
 }
 
 // Task is a task struct

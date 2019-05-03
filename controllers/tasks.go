@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"io/ioutil"
@@ -9,13 +10,17 @@ import (
 	"strconv"
 	"time"
 
+	"firebase.google.com/go/messaging"
+
+	firebase "firebase.google.com/go"
 	"github.com/gorilla/mux"
 	"github.com/mmiranda96/procastination-killer-server/models"
 )
 
 // Task is a contrller for tasks
 type Task struct {
-	DB *sql.DB
+	DB          *sql.DB
+	FirebaseApp *firebase.App
 }
 
 // GetTasks returns all tasks from a user
@@ -118,6 +123,8 @@ func (c *Task) AddUserToTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
+	c.notifyUserOfNewTask(user.Email)
 }
 
 func (c *Task) getTasksFromDB(email string) ([]*models.Task, error) {
@@ -335,4 +342,49 @@ func (c *Task) addUserToTask(userID, taskID int) error {
 	_, err := c.DB.Exec(query, userID, taskID)
 
 	return err
+}
+
+func (c *Task) getUserToken(email string) (string, error) {
+	const query = `
+	SELECT firebase_token
+	FROM users
+	WHERE email = $1;
+	`
+	var token sql.NullString
+	if err := c.DB.QueryRow(query, email).Scan(&token); err != nil {
+		return "", err
+	}
+
+	return token.String, nil
+}
+
+func (c *Task) notifyUserOfNewTask(email string) {
+	go func() {
+		token, err := c.getUserToken(email)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		ctx := context.Background()
+		firebaseClient, err := c.FirebaseApp.Messaging(ctx)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		message := &messaging.Message{
+			Notification: &messaging.Notification{
+				Title: "New task!",
+				Body:  "You have been added to a new task",
+			},
+			Token: token,
+		}
+		_, err = firebaseClient.Send(ctx, message)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		log.Println("Notificaton sent.")
+	}()
 }
